@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <fstream>
 using namespace std;
 
 //********************************************************************
@@ -31,6 +32,7 @@ public:
     int getQuantity() const;
     
     void display() const;
+    
 };
 
 
@@ -43,8 +45,8 @@ class Inventory{
         //private methods
         void selectionSortByDate();
         int binarySearchByDate(const string& date) const;
-        int findIndexById(int id) const;
-        int currentStock(const string& product) const;  
+        //int findIndexById(int id) const;
+        //int currentStock(const string& product) const;  
         int stockByBrand(const string& product, const string& brand) const;  
         
     public:
@@ -54,16 +56,19 @@ class Inventory{
         void sortByDate();  // this method call the private method selectionSortByDate
         void searchMenu();    
         void reportTotals();
+        void saveToFile(const string& filename);
+        void loadFromFile(const string& filename);
 };
 
 
 //********************************************************************
 // Functions Declaration 
 //********************************************************************
-void mainMenu(Inventory& inv); // Method To call the main Menu
+void mainMenu(Inventory& inv, const string& filename); // Method To call the main Menu
 int checkCharacter(string message); // Method that checks whether the user prompted a number or a character
 string selectProduct(); // Method to choose main product 
 int convertDate(const string& date); // method to convert date "DD/MM/YYYY" to YYYYMMDD
+
 
 //********************************************************************
 // main Function
@@ -72,8 +77,9 @@ int convertDate(const string& date); // method to convert date "DD/MM/YYYY" to Y
 
 int main()
 {
+    string filename = "D:/workspaces_C++/workspace1/output_files/products.txt";
     Inventory inv; // the inventory is created
-    mainMenu(inv); // the inventory data is passed to the menu.
+    mainMenu(inv, filename); // the inventory data is passed to the menu.
 	
 	return 0;
 }
@@ -127,8 +133,9 @@ void Transaction:: display() const{
 //*****************************************************************************
 //  mainMenu Method Implementation
 //*****************************************************************************
-void mainMenu(Inventory& inv){
+void mainMenu(Inventory& inv, const string& filename){
     int option = 0;
+        
     do{    
     // This function displays the main menu, where the user can perform actions according to the selected option.   
     
@@ -138,8 +145,10 @@ void mainMenu(Inventory& inv){
         cout<<"2 - Dispatch Products . \n";
         cout<<"3 - Generate Report. \n";
         cout<<"4 - Search for Date. \n";
-        cout<<"5 - Sort by Date \n";        
-        cout<<"6 - Exit Program. \n";        
+        cout<<"5 - Sort by Date \n";    
+        cout<<"6. Save Customers to File\n";
+        cout<<"7. Load Customers from File\n";
+        cout<<"8 - Exit Program. \n";        
         cout<<"============================================== \n";
         option = checkCharacter("Please, enter your selection \n");  //  the checkCharacter method is called
         
@@ -180,6 +189,14 @@ void mainMenu(Inventory& inv){
                 break;
                 
             case 6:
+                inv.saveToFile(filename ); 
+                break;
+                
+            case 7:
+                inv.loadFromFile(filename);
+                break;
+                
+            case 8:
                 cout << "Have a goog Day \n";
                 break;
                 
@@ -187,7 +204,7 @@ void mainMenu(Inventory& inv){
                 cout << "Invalid selection... Try again \n";
                 break;
         }
-    }while(option != 6);
+    }while(option != 8);
 }
 
 
@@ -535,6 +552,72 @@ int Inventory::stockByBrand(const string& product, const string& brand) const{
 };
 
 //*****************************************************************************
+//  Inventory::saveToFile() Method Implementation
+//*****************************************************************************
+void Inventory::saveToFile(const string& filename ){
+    ofstream out(filename);
+    if(!out){
+        cout << "Error opening file for writing.\n";
+        return;
+    }
+    
+    for(const auto& t : txs){
+        out << t.getId()        << "\n"
+            << t.getDate()      << "\n"
+            << t.getProduct()   << "\n"
+            << t.getBrand()     << "\n"
+            << t.getQuantity()    << "\n";        
+    }
+    
+    out.close();
+    cout << "Transactions saved to file.\n";
+};
+
+//*****************************************************************************
+//  Inventory::loadFromFile() Method Implementation
+//*****************************************************************************
+
+void Inventory::loadFromFile(const string& filename){
+    ifstream in(filename);
+    if(!in){
+        cout<<"Error opening file for reading.\n";
+        return;
+    }
+    
+    txs.clear();  //We clean what was there before
+    
+    while(true){
+        int id;
+        string date;
+        string product;
+        string brand;
+        int qty;
+        
+        // 1) We read the id; if it fails, we exit the loop
+    if(!(in >> id)) break;
+    in.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear the line break
+    
+    // 2) Read the remaining fields, each on a separate line
+    if(!getline(in, date))      break;
+    if(!getline(in, product))   break;
+    if(!getline(in, brand))     break;
+    if(!(in >> qty))            break;
+    in.ignore(numeric_limits<streamsize>::max(), '\n' ); // Clear the line break
+    
+    // 3) Rebuild the transaction and store it in the vector
+    Transaction t(id, date, product, brand, qty);
+    txs.push_back(t);
+    }
+    
+    in.close();
+    cout<< "Transactions loaded from file.\n";
+    
+}
+
+
+
+
+//*****************************************************************************
 //  convertDate Method Implementation
 //*****************************************************************************
 int convertDate(const string& date){
@@ -554,7 +637,7 @@ int convertDate(const string& date){
     int year = stoi(yyyy);
     
     // Format the date as YYYYMMDD
-    int key = (year * 1000) + (month * 100) + day;
+    int key = (year * 10000) + (month * 100) + day;
     
     return key;    
 };
