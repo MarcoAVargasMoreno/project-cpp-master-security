@@ -68,7 +68,7 @@ void mainMenu(Inventory& inv, const string& filename); // Method To call the mai
 int checkCharacter(string message); // Method that checks whether the user prompted a number or a character
 string selectProduct(); // Method to choose main product 
 int convertDate(const string& date); // method to convert date "DD/MM/YYYY" to YYYYMMDD
-
+string toLower(const string& text);
 
 //********************************************************************
 // main Function
@@ -146,8 +146,8 @@ void mainMenu(Inventory& inv, const string& filename){
         cout<<"3 - Generate Report. \n";
         cout<<"4 - Search for Date. \n";
         cout<<"5 - Sort by Date \n";    
-        cout<<"6. Save Customers to File\n";
-        cout<<"7. Load Customers from File\n";
+        cout<<"6. Save Transactions to File\n";
+        cout<<"7. Load Transactions from File\n";
         cout<<"8 - Exit Program. \n";        
         cout<<"============================================== \n";
         option = checkCharacter("Please, enter your selection \n");  //  the checkCharacter method is called
@@ -261,6 +261,20 @@ string selectProduct(){
             return selectProduct(); // Recursive call to the same method if the user selects an invalid option
     }
 };
+
+//*****************************************************************************
+//  Function toLower
+//*****************************************************************************
+string toLower(const string& text){
+    /*  This function converts the entire text to lowercase.
+        It uses a for loop to iterate through each character and convert it to lowercase.
+    */
+    string result = text;
+    for(char &c :result){
+        c=tolower(c);
+    }
+    return result;
+}
 
 
 //*****************************************************************************
@@ -613,8 +627,6 @@ void Inventory::loadFromFile(const string& filename){
     cout<< "Transactions loaded from file.\n";
     
 }
-
-
 
 
 //*****************************************************************************
