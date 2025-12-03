@@ -5,6 +5,7 @@
 #include <vector>
 #include <limits>
 #include <fstream>
+#include <stdexcept>
 using namespace std;
 
 //********************************************************************
@@ -69,6 +70,8 @@ int checkCharacter(string message); // Method that checks whether the user promp
 string selectProduct(); // Method to choose main product 
 int convertDate(const string& date); // method to convert date "DD/MM/YYYY" to YYYYMMDD
 string toLower(const string& text);
+string trim(const string& text);
+string normalizeProduct(const string& product);
 
 //********************************************************************
 // main Function
@@ -89,10 +92,30 @@ int main()
 //  Constructor Implementation
 //*****************************************************************************
 Transaction::Transaction(int id_tr, string dt, string pd, string br, int q ){
+
+    if(q==0){
+        throw runtime_error("Quantity cannot be zero. \n");
+    }
+
+    // Brand Validation
+    string cleanBrand = trim(br);
+    if(cleanBrand.empty()){
+        throw runtime_error("Brand cannot be empty. \n");
+    }
+
+    // Convert to lowercase
+    cleanBrand =toLower(cleanBrand);
+
+    // Date Validation
+    string cleanDate = trim(dt);
+        if(convertDate(cleanDate) == 0 ){
+        throw runtime_error("Invalid date format. Use DD/MM/YYYY. from year 2000 to current year \n");
+    }
+
     id = id_tr;
-    date = dt;
+    date = cleanDate;
     product = pd;
-    brand = br;    
+    brand = cleanBrand;    
     quantity = q;
 }
 
@@ -274,7 +297,38 @@ string toLower(const string& text){
         c=tolower(c);
     }
     return result;
-}
+};
+
+//*****************************************************************************
+//  Function trim
+//*****************************************************************************
+string trim(const string& text){
+    /*This function removes spaces at the beginning and at the end of a string.
+       It finds the first non-space character from the left (start)
+       and the last non-space character from the right (end),
+       then returns the substring between them.
+    */
+   int start =0;
+   int end = static_cast<int>(text.size()) -1;
+
+   // Move start forward while there are spaces
+   while(start <= end && isspace(static_cast<unsigned char>(text[start]))){
+    start++;
+   }
+
+   // Move end backward while there are spaces
+   while(end >= start && isspace(static_cast<unsigned char>(text[end]))){
+    end--;
+   }
+
+   // If the string is all spaces, return an empty string
+   if(start > end){
+    return "";
+   }
+
+   // Return substring without leading/ trailing spaces
+   return text.substr(start, end - start +1);
+};
 
 
 //*****************************************************************************
@@ -293,26 +347,33 @@ void Inventory::add(){
     
     string date;
     cout<< "Enter date (DD/MM/YYYY)";
-    cin>> date;    
+    cin>> date ;    
     //Clear the input buffer before reading a full line.
     cin.ignore(numeric_limits<streamsize>::max(), '\n' ) ;
     
     string brand;
     cout<<"Enter Brand: \n";
     getline(cin, brand);
+    brand = toLower(trim(brand)); // call methods toLower and trim to eliminate a lowercase the brand 
     
     int qty = checkCharacter("Enter quantity:"); // call the method checkCharacter, to validate if is a number 
     if(qty <=0){
-        cout<<"Quantity must be positive. Product not added";
+        cout<<"Quantity must be positive. Product not added. \n";
         return;
     }
-    // Create and store the transaction
-    Transaction t(nextId, date, product,brand, qty);
-    txs.push_back(t);  // the information is stored in the txs vector
-    
-    nextId++; // Automatically increments the ID
-    
-    cout<<"Product added successfully.\n";
+
+    try
+    {
+        // Create and store the transaction
+        Transaction t(nextId, date, product,brand, qty);
+        txs.push_back(t);  // the information is stored in the txs vector
+        nextId++; // Automatically increments the ID
+        cout<<"Product added successfully.\n";
+    }
+    catch(const exception& e)
+    {
+        cout << "Error adding product: " << e.what() << '\n';
+    }   
     
 };
 
@@ -345,6 +406,7 @@ void Inventory::dispatch(){
     string brand;
     cout<<"Enter Brand: \n";
     getline(cin, brand);        
+    brand = toLower(trim(brand));  // call methods toLower and trim to eliminate a lowercase the brand 
 
     int qty = checkCharacter("Enter quantity to dispatch "); // call the method checkCharacter, to validate if is a number 
     if(qty <= 0){
@@ -366,13 +428,20 @@ void Inventory::dispatch(){
         cout << "Available: " << available << ", Requested: " << qty << "\n";
         return;
     }
+
+    try
+    {
+        // Create and dispatch the transaction  -- a negative value is used to indicate an output.
+        Transaction t(nextId, date,product, brand, -qty);
+        txs.push_back(t);
+        nextId++;
+        cout << "Product dispatched successfully.\n";
+    }
+    catch(const exception& e)
+    {
+        cout << "Error dispatching product:" << e.what() << '\n';
+    }
     
-    // Create and dispatch the transaction  -- a negative value is used to indicate an output.
-    Transaction t(nextId, date,product, brand, -qty);
-    txs.push_back(t);
-    
-    nextId++;
-    cout << "Product dispatched successfully.\n";
 };
 
 //*****************************************************************************
@@ -636,20 +705,28 @@ int convertDate(const string& date){
     // expected date input format: "DD/MM/YYYY"
     if( date.size() !=10 || date[2] != '/' || date[5] != '/' ){
         return 0;
-    }
-    
+    }    
     // Extract the day, month, and year into their corresponding variables.
     string dd = date.substr(0,2);
     string mm = date.substr(3,2);
-    string yyyy = date.substr(6,4);
-    
+    string yyyy = date.substr(6,4);    
     // Convert dd, mm, and yyyy to numeric values.
     int day = stoi(dd);
     int month = stoi(mm);
     int year = stoi(yyyy);
-    
+    // Day Validation
+    if(day < 1 || day > 31 ){
+        return 0;
+    }
+    // Month Validation
+    if(month < 1 || month > 12){
+        return 0;
+    }
+    // Year Validation
+    if(year < 2000 || year > 2025){
+        return 0;
+    }
     // Format the date as YYYYMMDD
-    int key = (year * 10000) + (month * 100) + day;
-    
+    int key = (year * 10000) + (month * 100) + day;    
     return key;    
 };
